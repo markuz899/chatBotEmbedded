@@ -1,25 +1,22 @@
 import { SetStateAction, useState, useRef, useEffect } from "react";
+import { ChatbotOptions } from "./interface";
+import styled from "styled-components";
+import notificationSound from "../assets/notify.mp3";
 
-const Chatbot = ({
-  options,
-}: {
-  options: {
-    color?: string;
-    position?: string;
-    welcomeMessage?: string;
-  };
-}) => {
+const Chatbot = ({ options }: { options: ChatbotOptions }) => {
   const {
     color = "#0078D7",
     position = "bottom-right",
     welcomeMessage = "Ciao! Come posso aiutarti?",
+    openState,
   } = options;
-
+  const [isOpen, setIsOpen] = useState(openState);
   const [messages, setMessages] = useState([
     { text: welcomeMessage, sender: "bot" },
   ]);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -27,9 +24,33 @@ const Chatbot = ({
     }
   };
 
+  const playNotificationSound = () => {
+    if (audioRef.current) {
+      audioRef.current.play().catch((err) => {
+        console.error("Errore durante la riproduzione del suono:", err);
+      });
+    }
+  };
+
+  const toggle = () => {
+    setIsOpen(!isOpen);
+  };
+
   useEffect(() => {
     scrollToBottom();
+
+    // Riproduci suono se ultimo msg non viene dall'utente
+    if (messages.length > 1) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.sender !== "user") {
+        playNotificationSound();
+      }
+    }
   }, [messages]);
+
+  useEffect(() => {
+    setIsOpen(openState);
+  }, [openState]);
 
   const handleInputChange = (evt: {
     target: { value: SetStateAction<string> };
@@ -62,87 +83,134 @@ const Chatbot = ({
     "top-left": { top: "20px", left: "20px" },
   };
 
-  const styles: any = {
-    container: {
-      position: "fixed",
-      width: "300px",
-      border: "1px solid #ccc",
-      borderRadius: "10px",
-      boxShadow: "0px 4px 10px rgba(0,0,0,0.1)",
-      ...positionStyles[position],
-    },
-    header: {
-      backgroundColor: color,
-      color: "white",
-      padding: "10px",
-      borderRadius: "10px 10px 0 0",
-    },
-    messages: {
-      padding: "10px",
-      height: "300px",
-      overflowY: "scroll" as const,
-      backgroundColor: "#f9f9f9",
-    },
-    messageContainer: (isUser: boolean) => ({
-      textAlign: isUser ? "right" : ("left" as const),
-      margin: "5px 0",
-    }),
-    bubble: (isUser: boolean) => ({
-      padding: "8px",
-      borderRadius: "10px",
-      backgroundColor: isUser ? color : "#e0e0e0",
-      color: isUser ? "white" : "black",
-    }),
-    inputContainer: {
-      display: "flex",
-      padding: "10px",
-      backgroundColor: "#fff",
-      borderRadius: "0 0 10px 10px",
-    },
-    input: {
-      flex: 1,
-      padding: "8px",
-      border: "1px solid #ccc",
-      borderRadius: "5px",
-    },
-    button: {
-      marginLeft: "10px",
-      padding: "8px 10px",
-      backgroundColor: color,
-      color: "white",
-      border: "none",
-      borderRadius: "5px",
-    },
-  };
-
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>Chatbot</div>
-      <div style={styles.messages}>
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            style={styles.messageContainer(msg.sender === "user")}
-          >
-            <span style={styles.bubble(msg.sender === "user")}>{msg.text}</span>
-          </div>
-        ))}
-        <div ref={messagesEndRef}></div>
-      </div>
-      <div style={styles.inputContainer}>
-        <input
-          type="text"
-          value={input}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          style={styles.input}
-        />
-        <button onClick={sendMessage} style={styles.button}>
-          Invia
-        </button>
-      </div>
-    </div>
+    <>
+      <audio ref={audioRef} src={notificationSound} />
+      {isOpen ? (
+        <Container $positionStyles={positionStyles[position]}>
+          <Header color={color}>
+            <p>Chatbot</p>
+            <div className="toggle" onClick={toggle}>
+              &#10134;
+            </div>
+          </Header>
+          <Messages>
+            {messages.map((msg, index) => (
+              <MessageContainer key={index} $isUser={msg.sender === "user"}>
+                <Bubble $isUser={msg.sender === "user"} color={color}>
+                  {msg.text}
+                </Bubble>
+              </MessageContainer>
+            ))}
+            <div ref={messagesEndRef}></div>
+          </Messages>
+          <InputContainer>
+            <Input
+              type="text"
+              value={input}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+            />
+            <Button onClick={sendMessage} color={color}>
+              Invia
+            </Button>
+          </InputContainer>
+        </Container>
+      ) : (
+        <Collapsed
+          color={color}
+          $positionStyles={positionStyles[position]}
+          onClick={toggle}
+        >
+          <div className="toggle">Chatbot</div>
+        </Collapsed>
+      )}
+    </>
   );
 };
 
 export default Chatbot;
+
+const Container = styled.div<{ $positionStyles: any }>`
+  position: fixed;
+  width: 300px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  ${(props) => props.$positionStyles};
+`;
+
+const Collapsed = styled(Container)`
+  cursor: pointer;
+  background: ${(props) => props.color};
+  width: 50px;
+  padding: 10px;
+  .toggle {
+    color: #fff;
+    display: flex;
+    align-items: center;
+  }
+`;
+
+const Header = styled.div<{ color: string }>`
+  background: ${(props) => props.color};
+  color: white;
+  padding: 10px;
+  border-radius: 10px 10px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  p {
+    margin: 0;
+  }
+  .toggle {
+    cursor: pointer;
+  }
+`;
+
+const Messages = styled.div`
+  padding: 10px;
+  height: 300px;
+  overflow-y: scroll;
+  background: #f9f9f9;
+`;
+
+const MessageContainer = styled.div<{ $isUser: boolean }>`
+  text-align: ${(props) => (props.$isUser ? "right" : "left")};
+  margin: 5px 0;
+`;
+
+const Bubble = styled.span<{ $isUser: boolean; color: string }>`
+  padding: 8px;
+  border-radius: 10px;
+  background: ${(props) => (props.$isUser ? props.color : "#e0e0e0")};
+  color: ${(props) => (props.$isUser ? "white" : "black")};
+`;
+
+const InputContainer = styled.div`
+  display: flex;
+  padding: 10px;
+  background: #fff;
+  border-radius: 0 0 10px 10px;
+`;
+
+const Input = styled.input`
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+`;
+
+const Button = styled.button<{ color: string }>`
+  margin-left: 10px;
+  padding: 8px 10px;
+  background: ${(props) => props.color};
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.9;
+  }
+`;

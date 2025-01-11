@@ -15,8 +15,9 @@
         container: "#chatbot-root",
         options: {
           color: "blue",
-          position: "bottom-right",
+          position: "bottom-left",
           welcomeMessage: "Ciao! Sono qui per aiutarti.",
+          openState: false,
         },
       });
 
@@ -24,6 +25,7 @@
         Chatbot.updateOptions({
           color: "green",
           welcomeMessage: "Ciao! Come posso esserti utile oggi?",
+          openState: true,
         });
       }, 5000);
     </script>

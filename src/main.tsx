@@ -1,26 +1,21 @@
 import ReactDOM from "react-dom/client";
 import Chatbot from "./components/chatBot";
 import { useState } from "react";
-
-type ChatbotOptions = {
-  color?: string;
-  position?: "bottom-right" | "bottom-left" | "top-right" | "top-left";
-  welcomeMessage?: string;
-};
+import { ChatbotOptions } from "./components/interface";
 
 type InitProps = {
   container: string;
   options?: ChatbotOptions;
 };
 
-declare global {
-  interface Window {
-    Chatbot: {
-      init: (props: InitProps) => void;
-      updateOptions: (options: ChatbotOptions) => void;
-    };
-  }
-}
+// declare global {
+//   interface Window {
+//     Chatbot: {
+//       init: (props: InitProps) => void;
+//       updateOptions: (options: ChatbotOptions) => void;
+//     };
+//   }
+// }
 
 let updateChatbotOptions: ((options: ChatbotOptions) => void) | null = null;
 
@@ -43,22 +38,24 @@ function init({ container, options }: InitProps): void {
 
     updateChatbotOptions = setChatbotOptions;
 
-    return <Chatbot options={chatbotOptions} />;
+    return <Chatbot options={{ ...options, ...chatbotOptions }} />;
   };
 
   root.render(<App />);
 }
 
+function updateOptions(options: ChatbotOptions) {
+  if (updateChatbotOptions) {
+    updateChatbotOptions(options);
+  } else {
+    console.warn(
+      "Chatbot non inizializzato. Chiama `init` prima di aggiornare le opzioni."
+    );
+  }
+}
+
 // Esporta le funzioni init e updateOptions come parte del bundle globale
 window.Chatbot = {
   init,
-  updateOptions: (options: ChatbotOptions) => {
-    if (updateChatbotOptions) {
-      updateChatbotOptions(options);
-    } else {
-      console.warn(
-        "Chatbot non inizializzato. Chiama `init` prima di aggiornare le opzioni."
-      );
-    }
-  },
+  updateOptions,
 };
