@@ -5,6 +5,7 @@ import notificationSound from "../assets/notify.mp3";
 
 const Chatbot = ({ options }: { options: ChatbotOptions }) => {
   const {
+    label,
     color = "#0078D7",
     position = "bottom-right",
     welcomeMessage = "Ciao! Come posso aiutarti?",
@@ -15,6 +16,7 @@ const Chatbot = ({ options }: { options: ChatbotOptions }) => {
     { text: welcomeMessage, sender: "bot" },
   ]);
   const [input, setInput] = useState("");
+  const [inputError, setInputError] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -55,6 +57,9 @@ const Chatbot = ({ options }: { options: ChatbotOptions }) => {
   const handleInputChange = (evt: {
     target: { value: SetStateAction<string> };
   }) => {
+    if (evt.target.value) {
+      setInputError(false);
+    }
     setInput(evt.target.value);
   };
 
@@ -72,6 +77,8 @@ const Chatbot = ({ options }: { options: ChatbotOptions }) => {
         { text: "Risposta automatica", sender: "bot" },
       ]);
       setInput("");
+    } else {
+      setInputError(true);
     }
   };
 
@@ -89,7 +96,7 @@ const Chatbot = ({ options }: { options: ChatbotOptions }) => {
       {isOpen ? (
         <Container $positionStyles={positionStyles[position]}>
           <Header color={color}>
-            <p>Chatbot</p>
+            <p>{label || "Chatbot"}</p>
             <div className="toggle" onClick={toggle}>
               &#10134;
             </div>
@@ -110,6 +117,7 @@ const Chatbot = ({ options }: { options: ChatbotOptions }) => {
               value={input}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
+              $isError={inputError}
             />
             <Button onClick={sendMessage} color={color}>
               Invia
@@ -122,7 +130,7 @@ const Chatbot = ({ options }: { options: ChatbotOptions }) => {
           $positionStyles={positionStyles[position]}
           onClick={toggle}
         >
-          <div className="toggle">Chatbot</div>
+          <div className="toggle">{label || "Chatbot"}</div>
         </Collapsed>
       )}
     </>
@@ -143,12 +151,16 @@ const Container = styled.div<{ $positionStyles: any }>`
 const Collapsed = styled(Container)`
   cursor: pointer;
   background: ${(props) => props.color};
-  width: 50px;
+  width: fit-content;
   padding: 10px;
+  transition: 0.5s;
   .toggle {
     color: #fff;
     display: flex;
     align-items: center;
+  }
+  &:hover {
+    transform: scale(1.1);
   }
 `;
 
@@ -178,13 +190,18 @@ const Messages = styled.div`
 const MessageContainer = styled.div<{ $isUser: boolean }>`
   text-align: ${(props) => (props.$isUser ? "right" : "left")};
   margin: 5px 0;
+  display: flex;
+  align-items: center;
+  justify-content: ${(props) => (props.$isUser ? "flex-end" : "flex-start")};
 `;
 
-const Bubble = styled.span<{ $isUser: boolean; color: string }>`
+const Bubble = styled.p<{ $isUser: boolean; color: string }>`
+  width: fit-content;
   padding: 8px;
   border-radius: 10px;
   background: ${(props) => (props.$isUser ? props.color : "#e0e0e0")};
   color: ${(props) => (props.$isUser ? "white" : "black")};
+  margin: 0;
 `;
 
 const InputContainer = styled.div`
@@ -194,10 +211,10 @@ const InputContainer = styled.div`
   border-radius: 0 0 10px 10px;
 `;
 
-const Input = styled.input`
+const Input = styled.input<{ $isError: boolean }>`
   flex: 1;
   padding: 8px;
-  border: 1px solid #ccc;
+  border: ${({ $isError }) => ($isError ? "1px solid red" : "1px solid #ccc")};
   border-radius: 5px;
 `;
 
